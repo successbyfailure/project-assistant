@@ -1,0 +1,26 @@
+{
+    "mcpServers": {
+        "git": {
+            "command": "uvx",
+            "args": [
+                "mcp-server-git",
+                "--repository",
+                "/home/coder/Projects/{project}"
+            ]
+        },
+        "github": {
+            "command": "docker",
+            "args": [
+                "run",
+                "--rm",
+                "-i",
+                "-e",
+                "GITHUB_TOKEN",
+                "ghcr.io/modelcontextprotocol/server-github"
+            ],
+            "env": {
+                "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+            }
+        }
+    }
+}

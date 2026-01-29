@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fulcrum | AI Project Manager</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="icon" type="image/png" href="/static/icons/favicon.png">
+    <link rel="apple-touch-icon" href="/static/icons/favicon.png">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <!-- Auth View -->
+        <div id="auth-view" class="auth-container">
+            <div class="glass-panel auth-card">
+                <div class="logo-area" style="text-align: center; margin-bottom: 30px;">
+                    <img src="/static/icons/favicon.png" alt="Fulcrum Logo"
+                        style="width: 64px; height: 64px; margin-bottom: 10px;">
+                    <h1 id="auth-title">Welcome to Fulcrum</h1>
+                    <p class="subtitle">AI-native orchestrator for your workspaces</p>
+                </div>
+
+                <form id="auth-form">
+                    <div id="register-fields" class="hidden">
+                        <div class="input-group">
+                            <label>Full Name</label>
+                            <input type="text" id="full_name" placeholder="John Doe">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" id="email" placeholder="john@example.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="auth-submit" class="btn-primary">Login</button>
+                </form>
+
+                <div class="auth-footer" style="margin-top: 20px; text-align: center; font-size: 0.875rem;">
+                    <span id="auth-toggle-text">Don't have an account?</span>
+                    <a href="#" id="auth-toggle"
+                        style="color: var(--accent); text-decoration: none; font-weight: 500;">Sign up</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="app-layout hidden">
+            <aside class="sidebar glass-panel">
+                <div class="sidebar-header">
+                    <img src="/static/icons/favicon.png" alt="Logo" style="width: 32px; height: 32px;">
+                    <span class="logo-text">Fulcrum</span>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-item active" data-view="overview">
+                        <span>Overview</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="chat">
+                        <span>Chat with PM</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="projects">
+                        <span>Projects</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="tasks">
+                        <span>Tasks</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="accounts">
+                        <span>AI Accounts</span>
+                    </a>
+                </nav>
+                <div class="sidebar-footer">
+                    <button id="logout-btn" class="btn-secondary">Logout</button>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                <!-- Overview -->
+                <div id="view-overview" class="view">
+                    <div class="header-action">
+                        <h2>Global Overview</h2>
+                        <button class="btn-primary open-project-modal" style="width: auto; padding: 10px 20px;">+ New
+                            Project</button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="glass-panel stat-card">
+                            <h3>Active Projects</h3>
+                            <div class="value" id="stat-projects">-</div>
+                        </div>
+                        <div class="glass-panel stat-card">
+                            <h3>Pending Tasks</h3>
+                            <div class="value" id="stat-tasks">-</div>
+                        </div>
+                        <div class="glass-panel stat-card">
+                            <h3>LLM Status</h3>
+                            <div class="value" id="stat-llm" style="font-size: 1rem; color: var(--accent);">Checking...
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 30px;">My Projects</h3>
+                    <div id="project-list" class="project-grid" style="margin-top: 20px;">
+                        <!-- Projects injected here -->
+                    </div>
+                </div>
+
+                <!-- Projects -->
+                <div id="view-projects" class="view hidden">
+                    <div class="header-action">
+                        <h2>My Projects</h2>
+                        <button class="btn-primary open-project-modal" style="width: auto; padding: 10px 20px;">+
+                            Register Project</button>
+                    </div>
+                    <div id="full-project-list" class="project-grid">
+                        <!-- Full project list injected here -->
+                    </div>
+                </div>
+
+                <!-- Chat -->
+                <div id="view-chat" class="view hidden">
+                    <div class="header-action">
+                        <h2>Chat with ProjectManager</h2>
+                        <button id="open-pm-settings" class="btn-primary" style="width: auto; padding: 10px 20px;">⚙️ PM
+                            Settings</button>
+                    </div>
+                    <div class="glass-panel chat-container"
+                        style="height: calc(100vh - 200px); display: flex; flex-direction: column;">
+                        <div id="chat-messages"
+                            style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                            <div class="message system">
+                                <p>Hello! I am your Fulcrum Project Manager. How can I help you coordinate your projects
+                                    today?</p>
+                            </div>
+                        </div>
+                        <div class="chat-input-area"
+                            style="padding: 20px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
+                            <input type="text" id="chat-input" placeholder="Ask about your projects..."
+                                style="flex: 1;">
+                            <button id="send-chat" class="btn-primary"
+                                style="width: auto; padding: 0 25px;">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tasks -->
+                <div id="view-tasks" class="view hidden">
+                    <div class="header-action">
+                        <h2>Tasks</h2>
+                    </div>
+                    <div class="glass-panel" style="padding: 40px; text-align: center;">
+                        <p class="subtitle">Task management integration coming soon in Phase 2.</p>
+                    </div>
+                </div>
+
+                <!-- Accounts -->
+                <div id="view-accounts" class="view hidden">
+                    <div class="header-action">
+                        <h2>AI Accounts & Credentials</h2>
+                    </div>
+                    <div class="glass-panel" style="padding: 30px; max-width: 600px; margin-bottom: 20px;">
+                        <h3>Existing Accounts</h3>
+                        <p class="subtitle" style="margin-bottom: 20px;">Your configured AI credentials.</p>
+                        <div id="accounts-list" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Accounts will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="glass-panel" style="padding: 30px; max-width: 600px;">
+                        <h3>Configure LLM</h3>
+                        <p class="subtitle" style="margin-bottom: 20px;">Add your AI provider credentials. Model
+                            selection will be done in Project Manager settings.</p>
+                        <form id="llm-form">
+                            <div class="input-group">
+                                <label>Configuration Name</label>
+                                <input type="text" id="llm-name" placeholder="My Ollama / OpenAI Key">
+                            </div>
+                            <div class="input-group">
+                                <label>Provider</label>
+                                <select id="llm-provider"
+                                    style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;">
+                                    <option value="openai">OpenAI (Default)</option>
+                                    <option value="anthropic">Anthropic</option>
+                                    <option value="azure">Azure OpenAI</option>
+                                    <option value="ollama">Ollama.com</option>
+                                    <option value="ollama-local">Ollama Self-hosted</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Custom API Endpoint (Optional)</label>
+                                <input type="text" id="llm-endpoint" placeholder="https://api.openai.com/v1">
+                            </div>
+                            <div class="input-group">
+                                <label>API Key <span style="color: var(--text-dim); font-size: 0.875rem;">(Optional for
+                                        Ollama self-hosted)</span></label>
+                                <input type="password" id="llm-key" placeholder="sk-... or leave empty for Ollama">
+                            </div>
+                            <div class="input-group"
+                                style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="llm-global"
+                                    style="width: 20px; height: 20px; cursor: pointer;">
+                                <label for="llm-global" style="margin-bottom: 0; cursor: pointer;">Make System Wide
+                                    (Admin only)</label>
+                            </div>
+                            <button type="submit" class="btn-primary" style="margin-top: 20px;">Save
+                                Credentials</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Project Modal -->
+        <div id="project-modal" class="modal-overlay hidden"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);">
+            <div class="glass-panel modal-card"
+                style="width: 100%; max-width: 500px; padding: 40px; position: relative;">
+                <h2>New Project</h2>
+                <p class="subtitle">Register a project for AI-native management.</p>
+                <form id="project-form" style="margin-top: 20px;">
+                    <div class="input-group">
+                        <label>Project Name</label>
+                        <input type="text" id="p-name" placeholder="E.g. Project Assistant" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Description</label>
+                        <input type="text" id="p-desc" placeholder="What is this project about?">
+                    </div>
+                    <div class="input-group">
+                        <label>Repository URL (Optional)</label>
+                        <input type="text" id="p-url" placeholder="https://github.com/user/repo">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 30px;">
+                        <button type="button" class="btn-primary"
+                            style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-dim);"
+                            onclick="document.getElementById('project-modal').classList.add('hidden')">Cancel</button>
+                        <button type="submit" class="btn-primary" style="flex: 1;">Create Project</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- PM Settings Modal -->
+        <div id="pm-settings-modal" class="modal-overlay hidden"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);">
+            <div class="glass-panel modal-card"
+                style="width: 100%; max-width: 500px; padding: 40px; position: relative;">
+                <h2>Project Manager Settings</h2>
+                <p class="subtitle">Configure which AI model to use for chat.</p>
+                <form id="pm-settings-form" style="margin-top: 20px;">
+                    <div class="input-group">
+                        <label>AI Account</label>
+                        <select id="pm-account"
+                            style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;"
+                            required>
+                            <option value="">Select an account...</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Model</label>
+                        <select id="pm-model"
+                            style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;"
+                            required>
+                            <option value="">Select account first...</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 30px;">
+                        <button type="button" class="btn-primary"
+                            style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-dim);"
+                            onclick="document.getElementById('pm-settings-modal').classList.add('hidden')">Cancel</button>
+                        <button type="submit" class="btn-primary" style="flex: 1;">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+</body>
+
+</html>

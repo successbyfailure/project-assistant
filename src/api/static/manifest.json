@@ -1,0 +1,21 @@
+{
+    "name": "Fulcrum Project Manager",
+    "short_name": "Fulcrum",
+    "description": "Multi-tenant AI-native project orchestration system",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#6366f1",
+    "icons": [
+        {
+            "src": "/static/icons/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/icons/favicon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
