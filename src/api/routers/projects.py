@@ -16,6 +16,12 @@ class ProjectCreate(BaseModel):
     description: Optional[str] = None
     source_type: str = "local"
     remote_url: Optional[str] = None
+    workspace_id: Optional[str] = None
+    workspace_name: Optional[str] = None
+    workspace_path: Optional[str] = None
+    production_url: Optional[str] = None
+    testing_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 class ProjectResponse(BaseModel):
     id: str
@@ -23,9 +29,27 @@ class ProjectResponse(BaseModel):
     description: Optional[str] = None
     source_type: str
     remote_url: Optional[str] = None
+    workspace_id: Optional[str] = None
+    workspace_name: Optional[str] = None
+    workspace_path: Optional[str] = None
+    production_url: Optional[str] = None
+    testing_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    source_type: Optional[str] = None
+    remote_url: Optional[str] = None
+    workspace_id: Optional[str] = None
+    workspace_name: Optional[str] = None
+    workspace_path: Optional[str] = None
+    production_url: Optional[str] = None
+    testing_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 @router.post("", response_model=ProjectResponse)
 @router.post("/", response_model=ProjectResponse, include_in_schema=False)
@@ -84,3 +108,25 @@ async def get_project_status(
 
     agent = FulcrumPMAgent(current_user.id, db)
     return {"project": project.name, "status": "Local metadata only (Phase 1)"}
+
+@router.patch("/{project_id}", response_model=ProjectResponse)
+async def update_project(
+    project_id: str,
+    project_in: ProjectUpdate,
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(ProjectDB).where(ProjectDB.id == project_id, ProjectDB.user_id == current_user.id)
+    )
+    project = result.scalars().first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    updates = project_in.model_dump(exclude_unset=True)
+    for key, value in updates.items():
+        setattr(project, key, value)
+
+    await db.commit()
+    await db.refresh(project)
+    return project

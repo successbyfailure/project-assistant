@@ -8,6 +8,11 @@ services:
       - JWT_SECRET=${JWT_SECRET:-fulcrum_secret_key_12345}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - CODER_OAUTH_CLIENT_ID=${CODER_OAUTH_CLIENT_ID}
+      - CODER_OAUTH_CLIENT_SECRET=${CODER_OAUTH_CLIENT_SECRET}
+      - CODER_OAUTH_SCOPE=${CODER_OAUTH_SCOPE}
+      - CODER_BASE_URL=${CODER_BASE_URL}
+      - BASE_DOMAIN=${BASE_DOMAIN:-http://localhost:8000}
     depends_on:
       db:
         condition: service_healthy

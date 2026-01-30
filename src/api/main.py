@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from src.api.routers import auth, accounts, projects, chat
+from src.api.routers import auth, accounts, projects, chat, integrations
 from src.storage.postgres import init_db
 
 app = FastAPI(
@@ -38,6 +38,7 @@ app.include_router(auth.router)
 app.include_router(accounts.router)
 app.include_router(projects.router)
 app.include_router(chat.router)
+app.include_router(integrations.router)
 
 app.add_middleware(
     CORSMiddleware,

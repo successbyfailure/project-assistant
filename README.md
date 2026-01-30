@@ -1,6 +1,6 @@
-# Project Assistant
+# Fulcrum
 
-AI-native project orchestration system for Coder workspaces. It provides an MCP server that aggregates project status from Git and GitHub, and allows managing tasks within the workspace.
+Fulcrum es un gestor de proyectos agentico, pensado para integrarse con Coder (https://coder.com) y GitHub Codespaces. WIP.
 
 ## Features
 

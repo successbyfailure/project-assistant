@@ -27,17 +27,17 @@
                 <form id="auth-form">
                     <div id="register-fields" class="hidden">
                         <div class="input-group">
-                            <label>Full Name</label>
-                            <input type="text" id="full_name" placeholder="John Doe">
+                            <label for="full_name">Full Name</label>
+                            <input type="text" id="full_name" placeholder="John Doe" autocomplete="name">
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Email Address</label>
-                        <input type="email" id="email" placeholder="john@example.com" required>
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" placeholder="john@example.com" required autocomplete="username">
                     </div>
                     <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" id="password" placeholder="••••••••" required>
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
                     </div>
                     <button type="submit" id="auth-submit" class="btn-primary">Login</button>
                 </form>
@@ -67,11 +67,14 @@
                     <a href="#" class="nav-item" data-view="projects">
                         <span>Projects</span>
                     </a>
+                    <a href="#" class="nav-item" data-view="workspaces">
+                        <span>Workspaces</span>
+                    </a>
                     <a href="#" class="nav-item" data-view="tasks">
                         <span>Tasks</span>
                     </a>
-                    <a href="#" class="nav-item" data-view="accounts">
-                        <span>AI Accounts</span>
+                    <a href="#" class="nav-item" data-view="integrations">
+                        <span>Integrations</span>
                     </a>
                 </nav>
                 <div class="sidebar-footer">
@@ -122,6 +125,44 @@
                     </div>
                 </div>
 
+                <!-- Workspaces -->
+                <div id="view-workspaces" class="view hidden">
+                    <div class="header-action">
+                        <h2>Workspaces</h2>
+                    </div>
+                    <div class="integrations-grid">
+                        <div class="glass-panel integration-card">
+                            <div class="integration-header">
+                                <div>
+                                    <h3>Coder</h3>
+                                    <p class="subtitle">Browse your Coder workspaces. GitHub Codespaces coming soon.</p>
+                                </div>
+                                <span class="integration-badge">Coder</span>
+                            </div>
+                            <div class="integration-section">
+                                <div class="section-title">Saved Connections</div>
+                                <div class="integration-row">
+                                    <select id="workspaces-coder-select" class="input-select">
+                                        <option value="">Select a connection...</option>
+                                    </select>
+                                    <button id="workspaces-coder-load" class="btn-secondary btn-compact">Load Workspaces</button>
+                                </div>
+                                <div id="workspaces-coder-list" class="integration-list"></div>
+                            </div>
+                        </div>
+                        <div class="glass-panel integration-card">
+                            <div class="integration-header">
+                                <div>
+                                    <h3>GitHub Codespaces</h3>
+                                    <p class="subtitle">Connect GitHub to list Codespaces and link them to projects.</p>
+                                </div>
+                                <span class="integration-badge">Soon</span>
+                            </div>
+                            <p class="subtitle">Enable GitHub OAuth in Integrations to unlock Codespaces later.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Chat -->
                 <div id="view-chat" class="view hidden">
                     <div class="header-action">
@@ -141,7 +182,7 @@
                         <div class="chat-input-area"
                             style="padding: 20px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
                             <input type="text" id="chat-input" placeholder="Ask about your projects..."
-                                style="flex: 1;">
+                                style="flex: 1;" autocomplete="off">
                             <button id="send-chat" class="btn-primary"
                                 style="width: auto; padding: 0 25px;">Send</button>
                         </div>
@@ -158,57 +199,146 @@
                     </div>
                 </div>
 
-                <!-- Accounts -->
-                <div id="view-accounts" class="view hidden">
+                <!-- Integrations -->
+                <div id="view-integrations" class="view hidden">
                     <div class="header-action">
-                        <h2>AI Accounts & Credentials</h2>
+                        <h2>Integrations</h2>
                     </div>
-                    <div class="glass-panel" style="padding: 30px; max-width: 600px; margin-bottom: 20px;">
-                        <h3>Existing Accounts</h3>
-                        <p class="subtitle" style="margin-bottom: 20px;">Your configured AI credentials.</p>
-                        <div id="accounts-list" style="display: flex; flex-direction: column; gap: 12px;">
-                            <!-- Accounts will be loaded here -->
+                    <div class="integrations-grid">
+                        <div class="glass-panel integration-card">
+                            <div class="integration-header">
+                                <div>
+                                    <h3>Coder</h3>
+                                    <p class="subtitle">Connect your Coder deployment and browse your workspaces.</p>
+                                </div>
+                                <span class="integration-badge">Workspaces</span>
+                            </div>
+                            <div class="integration-section">
+                                <div class="section-title">OAuth (MCP Bridge)</div>
+                                <div class="integration-actions">
+                                    <button type="button" id="coder-oauth-connect" class="btn-primary btn-compact">Connect via OAuth</button>
+                                </div>
+                                <p class="helper-text">Uses CODER_BASE_URL from the environment. Requires Coder experiments: oauth2, mcp-server-http.</p>
+                            </div>
+                            <div class="integration-divider"></div>
+                            <div class="integration-section">
+                                <div class="section-title">Saved Connections</div>
+                                <div class="integration-row">
+                                    <select id="coder-account-select" class="input-select">
+                                        <option value="">Select a connection...</option>
+                                    </select>
+                                    <button id="coder-load-workspaces" class="btn-secondary btn-compact">Load Workspaces</button>
+                                    <button id="coder-delete-connection" class="btn-danger btn-compact">Delete</button>
+                                </div>
+                                <div id="coder-workspaces" class="integration-list"></div>
+                            </div>
+                            <div class="integration-divider"></div>
+                            <div class="integration-section">
+                                <div class="section-title">Add / Update Connection</div>
+                                <form id="coder-form">
+                                    <div class="input-group">
+                                        <label for="coder-name">Connection Name</label>
+                                        <input type="text" id="coder-name" placeholder="My Coder" autocomplete="off">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="coder-url">Coder URL</label>
+                                        <input type="text" id="coder-url" placeholder="https://coder.example.com" autocomplete="url" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="coder-token">Coder Token</label>
+                                        <input type="password" id="coder-token" placeholder="Session or API token" autocomplete="off" required>
+                                    </div>
+                                    <div class="input-row">
+                                        <input type="checkbox" id="coder-session-token" class="checkbox">
+                                        <label for="coder-session-token" class="checkbox-label">Token is a short-lived session token (cli-auth)</label>
+                                    </div>
+                                    <div class="helper-text">Use cli-auth to exchange a session token for a full API key.</div>
+                                    <div class="integration-actions">
+                                        <button type="button" id="coder-open-cli-auth" class="btn-secondary btn-compact">Open cli-auth</button>
+                                        <button type="submit" class="btn-primary btn-compact">Save Connection</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                    <div class="glass-panel" style="padding: 30px; max-width: 600px;">
-                        <h3>Configure LLM</h3>
-                        <p class="subtitle" style="margin-bottom: 20px;">Add your AI provider credentials. Model
-                            selection will be done in Project Manager settings.</p>
-                        <form id="llm-form">
-                            <div class="input-group">
-                                <label>Configuration Name</label>
-                                <input type="text" id="llm-name" placeholder="My Ollama / OpenAI Key">
+
+                        <div class="glass-panel integration-card">
+                            <div class="integration-header">
+                                <div>
+                                    <h3>GitHub</h3>
+                                    <p class="subtitle" id="github-status-text">Not connected.</p>
+                                </div>
+                                <span class="integration-badge">Repositories</span>
                             </div>
-                            <div class="input-group">
-                                <label>Provider</label>
-                                <select id="llm-provider"
-                                    style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;">
-                                    <option value="openai">OpenAI (Default)</option>
-                                    <option value="anthropic">Anthropic</option>
-                                    <option value="azure">Azure OpenAI</option>
-                                    <option value="ollama">Ollama.com</option>
-                                    <option value="ollama-local">Ollama Self-hosted</option>
-                                </select>
+                            <div class="integration-actions integration-actions-spaced">
+                                <button id="github-connect" class="btn-primary btn-compact">Connect GitHub</button>
+                                <button id="github-load-repos" class="btn-secondary btn-compact">Load Repos</button>
                             </div>
-                            <div class="input-group">
-                                <label>Custom API Endpoint (Optional)</label>
-                                <input type="text" id="llm-endpoint" placeholder="https://api.openai.com/v1">
+                            <div id="github-repos" class="integration-list"></div>
+                        </div>
+
+                        <div class="glass-panel integration-card">
+                            <div class="integration-header">
+                                <div>
+                                    <h3>AI Accounts & Credentials</h3>
+                                    <p class="subtitle">Your configured AI credentials.</p>
+                                </div>
+                                <span class="integration-badge">Accounts</span>
                             </div>
-                            <div class="input-group">
-                                <label>API Key <span style="color: var(--text-dim); font-size: 0.875rem;">(Optional for
-                                        Ollama self-hosted)</span></label>
-                                <input type="password" id="llm-key" placeholder="sk-... or leave empty for Ollama">
+                            <div id="accounts-list" class="integration-list">
+                                <!-- Accounts will be loaded here -->
                             </div>
-                            <div class="input-group"
-                                style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" id="llm-global"
-                                    style="width: 20px; height: 20px; cursor: pointer;">
-                                <label for="llm-global" style="margin-bottom: 0; cursor: pointer;">Make System Wide
-                                    (Admin only)</label>
+                        </div>
+
+                        <div class="glass-panel integration-card">
+                            <div class="integration-header">
+                                <div>
+                                    <h3>Configure LLM</h3>
+                                    <p class="subtitle">Add your AI provider credentials. Model selection happens in Project Manager settings.</p>
+                                </div>
+                                <span class="integration-badge">LLM</span>
                             </div>
-                            <button type="submit" class="btn-primary" style="margin-top: 20px;">Save
-                                Credentials</button>
-                        </form>
+                            <form id="llm-form">
+                                <div class="input-group">
+                                    <label for="llm-name">Configuration Name</label>
+                                    <input type="text" id="llm-name" placeholder="My Ollama / OpenAI Key" autocomplete="off">
+                                </div>
+                                <div class="input-group">
+                                    <label for="llm-provider">Provider</label>
+                                    <select id="llm-provider" class="input-select">
+                                        <option value="openai">OpenAI (Default)</option>
+                                        <option value="anthropic">Anthropic</option>
+                                        <option value="azure">Azure OpenAI</option>
+                                        <option value="ollama">Ollama.com</option>
+                                        <option value="ollama-local">Ollama Self-hosted</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="llm-endpoint">Custom API Endpoint (Optional)</label>
+                                    <input type="text" id="llm-endpoint" placeholder="https://api.openai.com/v1" autocomplete="url">
+                                </div>
+                                <div class="input-group">
+                                    <label for="llm-models">Enabled Models</label>
+                                    <select id="llm-models" multiple class="input-select">
+                                        <option value="">Load models from endpoint...</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="llm-model-default">Default Model</label>
+                                    <select id="llm-model-default" class="input-select">
+                                        <option value="">Select default model...</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="llm-key">API Key <span class="inline-note">(Optional for Ollama self-hosted)</span></label>
+                                    <input type="password" id="llm-key" placeholder="sk-... or leave empty for Ollama" autocomplete="off">
+                                </div>
+                                <div class="input-row">
+                                    <input type="checkbox" id="llm-global" class="checkbox">
+                                    <label for="llm-global" class="checkbox-label">Make System Wide (Admin only)</label>
+                                </div>
+                                <button type="submit" class="btn-primary" style="margin-top: 12px;">Save Credentials</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -223,16 +353,24 @@
                 <p class="subtitle">Register a project for AI-native management.</p>
                 <form id="project-form" style="margin-top: 20px;">
                     <div class="input-group">
-                        <label>Project Name</label>
-                        <input type="text" id="p-name" placeholder="E.g. Project Assistant" required>
+                        <label for="p-name">Project Name</label>
+                        <input type="text" id="p-name" placeholder="E.g. Project Assistant" required autocomplete="off">
                     </div>
                     <div class="input-group">
-                        <label>Description</label>
-                        <input type="text" id="p-desc" placeholder="What is this project about?">
+                        <label for="p-desc">Description</label>
+                        <input type="text" id="p-desc" placeholder="What is this project about?" autocomplete="off">
                     </div>
                     <div class="input-group">
-                        <label>Repository URL (Optional)</label>
-                        <input type="text" id="p-url" placeholder="https://github.com/user/repo">
+                        <label for="p-url">Repository URL (Optional)</label>
+                        <input type="text" id="p-url" placeholder="https://github.com/user/repo" autocomplete="url">
+                    </div>
+                    <div class="input-group">
+                        <label for="p-workspace">Workspace ID (Optional)</label>
+                        <input type="text" id="p-workspace" placeholder="Coder workspace id or Codespace id" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label for="p-path">Workspace Path (Optional)</label>
+                        <input type="text" id="p-path" placeholder="/home/coder/Projects/YourProject" autocomplete="off">
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 30px;">
                         <button type="button" class="btn-primary"
@@ -241,6 +379,98 @@
                         <button type="submit" class="btn-primary" style="flex: 1;">Create Project</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Project Viewer -->
+        <div id="project-viewer-modal" class="modal-overlay hidden"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);">
+            <div class="glass-panel modal-card"
+                style="width: 100%; max-width: 1100px; padding: 32px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+                    <div>
+                        <h2 id="project-viewer-title">Project</h2>
+                        <p class="subtitle" id="project-viewer-desc">Project details</p>
+                    </div>
+                    <button type="button" id="project-viewer-close" class="btn-secondary btn-compact">Close</button>
+                </div>
+                <div class="project-viewer-grid">
+                    <div class="project-viewer-pane">
+                        <div class="section-title">Project Viewer</div>
+                        <img id="project-viewer-thumb" class="project-viewer-thumb hidden" alt="Project thumbnail">
+                        <div class="project-viewer-placeholder">
+                            Project viewer will appear here.
+                        </div>
+                    </div>
+                    <div class="project-viewer-pane">
+                        <div class="section-title">Configuration</div>
+                        <form id="project-settings-form">
+                            <div class="input-group">
+                                <label for="project-workspace-account">Coder Connection</label>
+                                <select id="project-workspace-account" class="input-select">
+                                    <option value="">Select a connection...</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="project-workspace-select">Workspace</label>
+                                <div class="integration-row">
+                                    <select id="project-workspace-select" class="input-select">
+                                        <option value="">Select a workspace...</option>
+                                    </select>
+                                    <button type="button" id="project-workspace-load" class="btn-secondary btn-compact">Load</button>
+                                </div>
+                                <div id="project-workspace-status" class="helper-text"></div>
+                            </div>
+                            <div class="input-group">
+                                <label for="project-workspace-path">Workspace Path</label>
+                                <div class="integration-row">
+                                    <input type="text" id="project-workspace-path" placeholder="/home/coder/Projects/YourProject" autocomplete="off">
+                                    <button type="button" id="project-browse-path" class="btn-secondary btn-compact">Browse</button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="project-git-url">Git URL</label>
+                                <input type="text" id="project-git-url" placeholder="https://github.com/org/repo" autocomplete="off">
+                            </div>
+                            <div class="input-group">
+                                <label for="project-prod-url">Production URL</label>
+                                <input type="text" id="project-prod-url" placeholder="https://app.example.com" autocomplete="off">
+                            </div>
+                            <div class="input-group">
+                                <label for="project-test-url">Testing URL</label>
+                                <input type="text" id="project-test-url" placeholder="https://staging.example.com" autocomplete="off">
+                            </div>
+                            <div class="input-group">
+                                <label for="project-thumbnail-url">Thumbnail URL</label>
+                                <input type="text" id="project-thumbnail-url" placeholder="https://cdn.example.com/thumb.png" autocomplete="off">
+                            </div>
+                            <button type="submit" class="btn-primary" style="margin-top: 12px;">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Path Selector -->
+        <div id="project-path-modal" class="modal-overlay hidden"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);">
+            <div class="glass-panel modal-card"
+                style="width: 100%; max-width: 720px; padding: 28px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+                    <div>
+                        <h3>Select Folder</h3>
+                        <p class="subtitle" id="project-path-current">/</p>
+                    </div>
+                    <button type="button" id="project-path-close" class="btn-secondary btn-compact">Close</button>
+                </div>
+                <div id="project-path-alert" class="workspace-alert hidden">
+                    <div id="project-path-alert-text" class="workspace-alert-text"></div>
+                    <button type="button" id="project-path-open-coder" class="btn-primary btn-compact">Open in Coder</button>
+                </div>
+                <div id="project-path-list" class="folder-list"></div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+                    <button type="button" id="project-path-use" class="btn-primary btn-compact">Use This Folder</button>
+                </div>
             </div>
         </div>
 
@@ -253,7 +483,7 @@
                 <p class="subtitle">Configure which AI model to use for chat.</p>
                 <form id="pm-settings-form" style="margin-top: 20px;">
                     <div class="input-group">
-                        <label>AI Account</label>
+                        <label for="pm-account">AI Account</label>
                         <select id="pm-account"
                             style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;"
                             required>
@@ -261,7 +491,7 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Model</label>
+                        <label for="pm-model">Model</label>
                         <select id="pm-model"
                             style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;"
                             required>
@@ -273,6 +503,46 @@
                             style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-dim);"
                             onclick="document.getElementById('pm-settings-modal').classList.add('hidden')">Cancel</button>
                         <button type="submit" class="btn-primary" style="flex: 1;">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Edit Modal -->
+        <div id="account-edit-modal" class="modal-overlay hidden"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);">
+            <div class="glass-panel modal-card"
+                style="width: 100%; max-width: 520px; padding: 40px; position: relative;">
+                <h2>Edit AI Account</h2>
+                <p class="subtitle">Update endpoint and default model for this account.</p>
+                <form id="account-edit-form" style="margin-top: 20px;">
+                    <div class="input-group">
+                        <label for="account-edit-name">Account Name</label>
+                        <input type="text" id="account-edit-name" placeholder="My AI Account" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label for="account-edit-endpoint">API Endpoint</label>
+                        <input type="text" id="account-edit-endpoint" placeholder="https://api.openai.com/v1" autocomplete="url">
+                    </div>
+                    <div class="input-group">
+                        <label for="account-edit-models">Enabled Models</label>
+                        <select id="account-edit-models" multiple
+                            style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;">
+                            <option value="">Load models...</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="account-edit-model-default">Default Model</label>
+                        <select id="account-edit-model-default"
+                            style="width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px; color: white;">
+                            <option value="">Select default model...</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 30px;">
+                        <button type="button" class="btn-primary"
+                            style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-dim);"
+                            onclick="document.getElementById('account-edit-modal').classList.add('hidden')">Cancel</button>
+                        <button type="submit" class="btn-primary" style="flex: 1;">Save Changes</button>
                     </div>
                 </form>
             </div>

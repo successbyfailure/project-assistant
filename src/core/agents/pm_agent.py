@@ -53,5 +53,19 @@ class FulcrumPMAgent:
             "user_id": self.user_id,
             "llm_status": llm_status,
             "project_count": len(projects),
-            "projects": [{"id": p.id, "name": p.name, "description": p.description} for p in projects]
+            "projects": [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "description": p.description,
+                    "remote_url": p.remote_url,
+                    "workspace_id": p.workspace_id,
+                    "workspace_name": p.workspace_name,
+                    "workspace_path": p.workspace_path,
+                    "production_url": p.production_url,
+                    "testing_url": p.testing_url,
+                    "thumbnail_url": p.thumbnail_url
+                }
+                for p in projects
+            ]
         }

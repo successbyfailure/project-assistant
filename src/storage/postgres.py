@@ -39,6 +39,25 @@ async def get_db():
 
 async def init_db():
     async with engine.begin() as conn:
-        # Warning: This creates tables but doesn't handle migrations well. 
-        # In a real app, use Alembic.
+        # NOTE: create_all is a dev convenience; prefer Alembic in production.
+        if os.getenv("USE_ALEMBIC", "0") == "1":
+            return
         await conn.run_sync(Base.metadata.create_all)
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS workspace_id VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS workspace_name VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS workspace_path VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS production_url VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS testing_url VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR"
+        )

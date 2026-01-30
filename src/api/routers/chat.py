@@ -10,8 +10,18 @@ import json
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
+OLLAMA_PROVIDERS = {"ollama", "ollama-local"}
+
+def normalize_ollama_endpoint(provider: str, endpoint: Optional[str]) -> Optional[str]:
+    if provider not in OLLAMA_PROVIDERS or not endpoint:
+        return endpoint
+    trimmed = endpoint.rstrip("/")
+    return trimmed if trimmed.endswith("/v1") else f"{trimmed}/v1"
+
 class ChatMessage(BaseModel):
     message: str
+    model_name: Optional[str] = None
+    account_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -32,14 +42,24 @@ async def chat_with_pm(
     from src.models.user import AccountDB
     from sqlalchemy.future import select
     
-    # Get the first available account (frontend should configure which one to use)
-    result = await db.execute(
-        select(AccountDB).where(
-            (AccountDB.user_id == current_user.id) | (AccountDB.is_global == True)
-        ).where(AccountDB.provider.in_(["openai", "azure", "anthropic", "ollama", "ollama-local"]))
-        .order_by(AccountDB.is_global.asc())
-    )
-    account = result.scalars().first()
+    if msg.account_id:
+        result = await db.execute(
+            select(AccountDB).where(AccountDB.id == msg.account_id)
+        )
+        account = result.scalar_one_or_none()
+        if not account:
+            raise HTTPException(status_code=404, detail="AI account not found.")
+        if account.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Not authorized to use this AI account.")
+    else:
+        # Get the first available account (frontend should configure which one to use)
+        result = await db.execute(
+            select(AccountDB).where(
+                (AccountDB.user_id == current_user.id) | (AccountDB.is_global == True)
+            ).where(AccountDB.provider.in_(["openai", "azure", "anthropic", "ollama", "ollama-local"]))
+            .order_by(AccountDB.is_global.asc())
+        )
+        account = result.scalars().first()
     
     if not account:
         raise HTTPException(status_code=400, detail="No AI account configured. Please add one in AI Accounts.")
@@ -57,13 +77,30 @@ Projects: {projects_info or 'None'}
 
 Answer the user's question helpfully and concisely. Be friendly and professional."""
     
+    enabled_models = None
+    if account.extra_metadata and isinstance(account.extra_metadata, dict):
+        enabled_models = account.extra_metadata.get("enabled_models")
+
     # Use a default model if none is set
-    model_to_use = account.model_name or get_default_model(account.provider)
+    if msg.model_name:
+        model_to_use = msg.model_name
+    else:
+        model_to_use = account.model_name or get_default_model(account.provider)
+
+    if enabled_models and "*" not in enabled_models:
+        if msg.model_name and model_to_use not in enabled_models:
+            raise HTTPException(status_code=400, detail="Selected model is not enabled for this account.")
+        if model_to_use not in enabled_models:
+            model_to_use = enabled_models[0]
     
     # Call the LLM
     try:
+        endpoint = normalize_ollama_endpoint(
+            account.provider,
+            account.api_endpoint or "https://api.openai.com/v1"
+        )
         response_text = await call_llm(
-            account.api_endpoint or "https://api.openai.com/v1",
+            endpoint,
             account.access_token,
             model_to_use,
             context,
@@ -136,8 +173,18 @@ async def list_models(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     
+    enabled_models = None
+    if account.extra_metadata and isinstance(account.extra_metadata, dict):
+        enabled_models = account.extra_metadata.get("enabled_models")
+
+    if enabled_models and "*" not in enabled_models:
+        return {"models": sorted(enabled_models)}
+
     # For OpenAI-compatible endpoints, try to list models
-    endpoint = account.api_endpoint or "https://api.openai.com/v1"
+    endpoint = normalize_ollama_endpoint(
+        account.provider,
+        account.api_endpoint or "https://api.openai.com/v1"
+    )
     
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:

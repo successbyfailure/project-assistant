@@ -41,6 +41,12 @@ class ProjectDB(Base):
     description = Column(String)
     source_type = Column(String) # "local", "github", "coder"
     remote_url = Column(String)
+    workspace_id = Column(String)
+    workspace_name = Column(String)
+    workspace_path = Column(String)
+    production_url = Column(String)
+    testing_url = Column(String)
+    thumbnail_url = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     extra_metadata = Column(JSON)

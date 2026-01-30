@@ -9,6 +9,19 @@ Phase 3: Remote Workspace Orchestration → 3-4 weeks
 Phase 4: AI & Advanced Workflows    → 2 weeks
 ```
 
+## ✅ Current Status (2026-01-30)
+
+- LLM accounts now support enabled-model lists + default model per endpoint.
+- PM chat uses the selected account + model and enforces enabled models.
+- Endpoint normalization for Ollama (/v1) applied server-side.
+- Alembic scaffolding added with initial migration baseline.
+
+## ▶️ Next Steps
+
+- Add Alembic migrations and backfill existing DB schema changes.
+- Implement GitHub OAuth flow (Module 2.1.1) and repo discovery (2.1.2).
+- Implement Coder account sync + workspace discovery (Module 2.2).
+
 ---
 
 ## 🎯 Phase 1: Multi-tenant Foundation
@@ -26,6 +39,8 @@ Phase 4: AI & Advanced Workflows    → 2 weeks
 - [x] **1.2.1 Auth System (JWT + Passlib)**
 - [x] **1.2.2 Multi-tenant Task Engine (Migration to Postgres)**
 - [x] **1.2.3 LLM Credential Management (Global + User-specific)**
+  - [x] **1.2.3.a Model selection per endpoint (enabled models + default model)**
+  - [x] **1.2.3.b PM uses selected account/model (user override supported)**
 - [x] **1.2.4 Project Registration (Local metadata)**
 
 ---
@@ -35,16 +50,16 @@ Phase 4: AI & Advanced Workflows    → 2 weeks
 **Goal**: Allow users to connect their Coder and GitHub accounts.
 
 ### Module 2.1: GitHub Integration
-- [ ] **2.1.1 GitHub OAuth Flow**
+- [x] **2.1.1 GitHub OAuth Flow**
   - Implement "Connect GitHub" feature.
   - Securely store encrypted access tokens.
-- [ ] **2.1.2 Repository Discovery**
+- [x] **2.1.2 Repository Discovery**
   - List user repositories via GitHub API.
 
 ### Module 2.2: Coder Integration
-- [ ] **2.2.1 Coder Account Sync**
+- [x] **2.2.1 Coder Account Sync**
   - Support multiple Coder URLs and Tokens per user.
-- [ ] **2.2.2 Workspace Discovery**
+- [x] **2.2.2 Workspace Discovery**
   - Fetch available Coder workspaces for the authenticated user.
 
 ### Module 2.3: GitHub Ecosystem Research
