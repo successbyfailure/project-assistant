@@ -1,7 +1,7 @@
 [project]
 name = "fulcrum-project-manager"
 version = "0.1.1"
-description = "AI-native project orchestration system for Coder workspaces"
+description = "Gestor de proyectos agentico"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

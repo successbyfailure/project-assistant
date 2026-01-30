@@ -1,6 +1,6 @@
 # Fulcrum
 
-Fulcrum es un gestor de proyectos agentico, pensado para integrarse con Coder (https://coder.com) y GitHub Codespaces. WIP.
+Fulcrum es un gestor de proyectos agentico, pensado para integrarse con Coder (https://coder.com) y GitHub Codespaces.
 
 ## Features
 
