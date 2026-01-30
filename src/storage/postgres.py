@@ -53,11 +53,26 @@ async def init_db():
             "ALTER TABLE projects ADD COLUMN IF NOT EXISTS workspace_path VARCHAR"
         )
         await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS workspace_ref VARCHAR"
+        )
+        await conn.exec_driver_sql(
             "ALTER TABLE projects ADD COLUMN IF NOT EXISTS production_url VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS github_repo VARCHAR"
         )
         await conn.exec_driver_sql(
             "ALTER TABLE projects ADD COLUMN IF NOT EXISTS testing_url VARCHAR"
         )
         await conn.exec_driver_sql(
             "ALTER TABLE projects ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS codespace_id VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS codespace_name VARCHAR"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS codespace_url VARCHAR"
         )

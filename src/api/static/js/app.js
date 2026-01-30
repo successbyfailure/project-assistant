@@ -210,6 +210,9 @@ const projectViewerClose = document.getElementById('project-viewer-close');
 const projectViewerTitle = document.getElementById('project-viewer-title');
 const projectViewerDesc = document.getElementById('project-viewer-desc');
 const projectViewerThumb = document.getElementById('project-viewer-thumb');
+const projectGithubPanel = document.getElementById('project-github-panel');
+const projectGithubIssues = document.getElementById('project-github-issues');
+const projectGithubPrs = document.getElementById('project-github-prs');
 const projectSettingsForm = document.getElementById('project-settings-form');
 const projectWorkspaceAccount = document.getElementById('project-workspace-account');
 const projectWorkspaceSelect = document.getElementById('project-workspace-select');
@@ -218,7 +221,12 @@ const projectWorkspaceStatus = document.getElementById('project-workspace-status
 const projectWorkspacePath = document.getElementById('project-workspace-path');
 const projectBrowsePath = document.getElementById('project-browse-path');
 const projectGitUrl = document.getElementById('project-git-url');
+const projectGithubRepo = document.getElementById('project-github-repo');
+const projectGithubRepoList = document.getElementById('project-github-repo-list');
 const projectProdUrl = document.getElementById('project-prod-url');
+const projectCodespaceName = document.getElementById('project-codespace-name');
+const projectCodespaceUrl = document.getElementById('project-codespace-url');
+const projectCodespaceId = document.getElementById('project-codespace-id');
 const projectTestUrl = document.getElementById('project-test-url');
 const projectThumbnailUrl = document.getElementById('project-thumbnail-url');
 const projectPathModal = document.getElementById('project-path-modal');
@@ -229,11 +237,13 @@ const projectPathCurrent = document.getElementById('project-path-current');
 const projectPathAlert = document.getElementById('project-path-alert');
 const projectPathAlertText = document.getElementById('project-path-alert-text');
 const projectPathOpenCoder = document.getElementById('project-path-open-coder');
+const projectPathStartWorkspace = document.getElementById('project-path-start-workspace');
 let activeProjectId = null;
 let activeProject = null;
 let currentBrowsePath = '/';
 let projectWorkspaceMap = new Map();
 let coderAccountMap = new Map();
+let workspaceStatusPoller = null;
 
 function normalizeWorkspacePath(rawPath) {
     if (!rawPath) return '';
@@ -269,6 +279,7 @@ if (projectForm) {
             description: descVal || null,
             source_type: 'local',
             remote_url: urlVal || null,
+            github_repo: null,
             workspace_id: workspaceVal || null,
             workspace_name: null,
             workspace_path: pathVal || null,
@@ -312,6 +323,9 @@ function openProjectViewer(project) {
     if (projectWorkspacePath) projectWorkspacePath.value = project.workspace_path || '';
     if (projectGitUrl) projectGitUrl.value = project.remote_url || '';
     if (projectProdUrl) projectProdUrl.value = project.production_url || '';
+    if (projectCodespaceName) projectCodespaceName.value = project.codespace_name || '';
+    if (projectCodespaceUrl) projectCodespaceUrl.value = project.codespace_url || '';
+    if (projectCodespaceId) projectCodespaceId.value = project.codespace_id || '';
     if (projectTestUrl) projectTestUrl.value = project.testing_url || '';
     if (projectThumbnailUrl) projectThumbnailUrl.value = project.thumbnail_url || '';
     if (projectViewerThumb) {
@@ -321,6 +335,25 @@ function openProjectViewer(project) {
         } else {
             projectViewerThumb.classList.add('hidden');
             projectViewerThumb.removeAttribute('src');
+        }
+    }
+    if (projectGithubPanel && projectGithubIssues && projectGithubPrs) {
+        if (project.github_repo || project.remote_url) {
+            loadProjectGithubSummary(project.id);
+        } else {
+            projectGithubPanel.classList.add('hidden');
+        }
+    }
+    if (projectGithubRepo) {
+        const match = project.remote_url ? project.remote_url.match(/github\.com\/([^/]+\/[^/]+)(?:\.git)?$/) : null;
+        const repoFullName = project.github_repo || (match ? match[1] : null);
+        if (!projectGithubRepoList || projectGithubRepoList.childElementCount === 0) {
+            loadGithubReposIntoSelect(repoFullName);
+        } else if (repoFullName) {
+            projectGithubRepo.value = repoFullName;
+        }
+        if (repoFullName) {
+            projectGithubRepo.value = repoFullName;
         }
     }
     if (projectViewerModal) projectViewerModal.classList.remove('hidden');
@@ -337,6 +370,62 @@ function openProjectViewer(project) {
                 });
             }
         });
+    }
+}
+
+async function loadProjectGithubSummary(projectId) {
+    if (!projectGithubPanel || !projectGithubIssues || !projectGithubPrs) return;
+    projectGithubPanel.classList.remove('hidden');
+    projectGithubIssues.innerHTML = '<span class="subtitle">Loading...</span>';
+    projectGithubPrs.innerHTML = '<span class="subtitle">Loading...</span>';
+    try {
+        const res = await fetch(`${API_URL}/projects/${projectId}/github/summary`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            projectGithubIssues.innerHTML = '';
+            projectGithubPrs.innerHTML = '';
+            const issues = data.issues || [];
+            const prs = data.pull_requests || [];
+            if (!issues.length) {
+                projectGithubIssues.innerHTML = '<span class="subtitle">No open issues.</span>';
+            } else {
+                issues.forEach(issue => {
+                    const item = document.createElement('div');
+                    item.className = 'project-github-item';
+                    const link = document.createElement('a');
+                    link.href = issue.url;
+                    link.target = '_blank';
+                    link.rel = 'noopener';
+                    link.textContent = `#${issue.number} ${issue.title}`;
+                    item.appendChild(link);
+                    projectGithubIssues.appendChild(item);
+                });
+            }
+            if (!prs.length) {
+                projectGithubPrs.innerHTML = '<span class="subtitle">No open PRs.</span>';
+            } else {
+                prs.forEach(pr => {
+                    const item = document.createElement('div');
+                    item.className = 'project-github-item';
+                    const link = document.createElement('a');
+                    link.href = pr.url;
+                    link.target = '_blank';
+                    link.rel = 'noopener';
+                    link.textContent = `#${pr.number} ${pr.title}`;
+                    item.appendChild(link);
+                    projectGithubPrs.appendChild(item);
+                });
+            }
+        } else {
+            projectGithubIssues.innerHTML = `<span class="subtitle">${data.detail || 'GitHub not connected.'}</span>`;
+            projectGithubPrs.innerHTML = '';
+        }
+    } catch (err) {
+        console.error(err);
+        projectGithubIssues.innerHTML = '<span class="subtitle">Error loading GitHub data.</span>';
+        projectGithubPrs.innerHTML = '';
     }
 }
 
@@ -412,6 +501,54 @@ function updateProjectWorkspaceStatus() {
     }
 }
 
+async function fetchWorkspaceStatus(accountId, workspaceId) {
+    try {
+        const res = await fetch(`${API_URL}/integrations/coder/workspaces?account_id=${encodeURIComponent(accountId)}`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.workspaces)) {
+            const found = data.workspaces.find(ws => ws.id === workspaceId);
+            return found ? (found.status || null) : null;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+    return null;
+}
+
+function startWorkspaceStatusPolling(accountId, workspaceId) {
+    if (workspaceStatusPoller) {
+        clearInterval(workspaceStatusPoller);
+        workspaceStatusPoller = null;
+    }
+    let attempts = 0;
+    workspaceStatusPoller = setInterval(async () => {
+        attempts += 1;
+        const status = await fetchWorkspaceStatus(accountId, workspaceId);
+        if (status) {
+            if (projectWorkspaceStatus) {
+                projectWorkspaceStatus.textContent = `Workspace status: ${status}`;
+            }
+            if (projectPathAlertText) {
+                projectPathAlertText.textContent = `Workspace status: ${status}.`;
+            }
+            if (["running", "started", "healthy"].includes(String(status).toLowerCase())) {
+                clearInterval(workspaceStatusPoller);
+                workspaceStatusPoller = null;
+                if (projectPathAlert) projectPathAlert.classList.add('hidden');
+            }
+        }
+        if (attempts >= 12) {
+            clearInterval(workspaceStatusPoller);
+            workspaceStatusPoller = null;
+            if (projectPathAlertText) {
+                projectPathAlertText.textContent = 'Workspace is still starting. Retry in a moment.';
+            }
+        }
+    }, 5000);
+}
+
 if (projectSettingsForm) {
     projectSettingsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -424,8 +561,13 @@ if (projectSettingsForm) {
             workspace_id: selectedWorkspaceId,
             workspace_name: selectedWorkspaceName,
             workspace_path: projectWorkspacePath?.value || null,
+            workspace_ref: workspaceMeta ? workspaceMeta.ref : (activeProject?.workspace_ref || null),
             remote_url: projectGitUrl?.value || null,
+            github_repo: projectGithubRepo?.value || (projectGitUrl?.value?.match(/github\.com\/([^/]+\/[^/]+)(?:\.git)?$/)?.[1] || null),
             production_url: projectProdUrl?.value || null,
+            codespace_name: projectCodespaceName?.value || null,
+            codespace_url: projectCodespaceUrl?.value || null,
+            codespace_id: projectCodespaceId?.value || null,
             testing_url: projectTestUrl?.value || null,
             thumbnail_url: projectThumbnailUrl?.value || null
         };
@@ -464,6 +606,7 @@ async function loadWorkspaceFolders(path) {
     const selectedOption = projectWorkspaceSelect.selectedOptions?.[0];
     const workspaceRef = selectedOption?.dataset?.workspaceRef
         || projectWorkspaceMap.get(projectWorkspaceSelect.value)?.ref
+        || activeProject?.workspace_ref
         || '';
     projectPathList.innerHTML = '<p class="subtitle">Loading folders...</p>';
     try {
@@ -529,6 +672,7 @@ async function loadWorkspaceFolders(path) {
             if (res.status === 409 && projectPathAlert && projectPathAlertText) {
                 projectPathAlertText.textContent = detail;
                 projectPathAlert.classList.remove('hidden');
+                if (projectPathStartWorkspace) projectPathStartWorkspace.disabled = false;
             }
             return { ok: false, status: res.status, path };
         }
@@ -585,10 +729,83 @@ if (projectPathOpenCoder) {
     });
 }
 
+if (projectPathStartWorkspace) {
+    projectPathStartWorkspace.addEventListener('click', async () => {
+        if (!projectWorkspaceAccount?.value || !projectWorkspaceSelect?.value) return;
+        projectPathStartWorkspace.disabled = true;
+        try {
+            const params = new URLSearchParams({
+                account_id: projectWorkspaceAccount.value,
+                workspace_id: projectWorkspaceSelect.value
+            });
+            const res = await fetch(`${API_URL}/integrations/coder/workspaces/start?${params.toString()}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${state.token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (projectPathAlertText) {
+                    projectPathAlertText.textContent = 'Start requested. Tracking status...';
+                }
+                startWorkspaceStatusPolling(projectWorkspaceAccount.value, projectWorkspaceSelect.value);
+            } else {
+                if (projectPathAlertText) {
+                    projectPathAlertText.textContent = data.detail || 'Failed to start workspace.';
+                }
+                projectPathStartWorkspace.disabled = false;
+            }
+        } catch (err) {
+            console.error(err);
+            if (projectPathAlertText) projectPathAlertText.textContent = 'Server error starting workspace.';
+            projectPathStartWorkspace.disabled = false;
+        }
+    });
+}
+
 if (projectPathUse) {
     projectPathUse.addEventListener('click', () => {
         if (projectWorkspacePath) projectWorkspacePath.value = currentBrowsePath;
         projectPathModal.classList.add('hidden');
+    });
+}
+
+async function loadGithubReposIntoSelect(selectedFullName = null) {
+    if (!projectGithubRepo || !projectGithubRepoList) return;
+    projectGithubRepoList.innerHTML = '';
+    projectGithubRepo.placeholder = 'Loading...';
+    try {
+        const res = await fetch(`${API_URL}/integrations/github/repos`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.repos)) {
+            data.repos.forEach(repo => {
+                const option = document.createElement('option');
+                option.value = repo.full_name;
+                projectGithubRepoList.appendChild(option);
+            });
+            if (selectedFullName) {
+                projectGithubRepo.value = selectedFullName;
+            }
+            projectGithubRepo.placeholder = 'owner/repo';
+        } else {
+            projectGithubRepo.placeholder = 'GitHub not connected';
+        }
+    } catch (err) {
+        console.error(err);
+        projectGithubRepo.placeholder = 'Error loading repos';
+    }
+}
+
+if (projectGithubRepo) {
+    projectGithubRepo.addEventListener('change', () => {
+        if (!projectGitUrl) return;
+        if (!projectGithubRepo.value) return;
+        projectGitUrl.value = `https://github.com/${projectGithubRepo.value}`;
+    });
+    projectGithubRepo.addEventListener('focus', async () => {
+        if (!projectGithubRepoList || projectGithubRepoList.childElementCount > 0) return;
+        await loadGithubReposIntoSelect();
     });
 }
 
@@ -979,6 +1196,8 @@ const githubConnectBtn = document.getElementById('github-connect');
 const githubReposBtn = document.getElementById('github-load-repos');
 const githubStatusText = document.getElementById('github-status-text');
 const githubReposContainer = document.getElementById('github-repos');
+const githubConfigText = document.getElementById('github-config-text');
+const githubDisconnectBtn = document.getElementById('github-disconnect');
 
 // Coder Integration
 const coderForm = document.getElementById('coder-form');
@@ -995,6 +1214,8 @@ const coderOauthConnectBtn = document.getElementById('coder-oauth-connect');
 const workspacesCoderSelect = document.getElementById('workspaces-coder-select');
 const workspacesCoderLoadBtn = document.getElementById('workspaces-coder-load');
 const workspacesCoderList = document.getElementById('workspaces-coder-list');
+const codespacesLoadBtn = document.getElementById('codespaces-load');
+const codespacesList = document.getElementById('codespaces-list');
 
 async function loadGithubStatus() {
     if (!githubStatusText) return;
@@ -1007,18 +1228,31 @@ async function loadGithubStatus() {
             githubStatusText.textContent = `Connected as ${data.username || 'GitHub user'}.`;
             if (githubConnectBtn) githubConnectBtn.disabled = true;
             if (githubReposBtn) githubReposBtn.disabled = false;
+            if (githubDisconnectBtn) githubDisconnectBtn.disabled = false;
+            if (githubConfigText) {
+                githubConfigText.textContent = `OAuth callback: ${window.location.origin}/auth/github/callback`;
+            }
         } else if (res.ok && data.configured === false) {
             githubStatusText.textContent = 'GitHub OAuth not configured.';
             if (githubConnectBtn) githubConnectBtn.disabled = true;
             if (githubReposBtn) githubReposBtn.disabled = true;
+            if (githubDisconnectBtn) githubDisconnectBtn.disabled = true;
+            if (githubConfigText) {
+                githubConfigText.textContent = `Set GITHUB_CLIENT_ID/SECRET. Callback: ${window.location.origin}/auth/github/callback`;
+            }
         } else {
             githubStatusText.textContent = 'Not connected.';
             if (githubConnectBtn) githubConnectBtn.disabled = false;
             if (githubReposBtn) githubReposBtn.disabled = false;
+            if (githubDisconnectBtn) githubDisconnectBtn.disabled = true;
+            if (githubConfigText) {
+                githubConfigText.textContent = `OAuth callback: ${window.location.origin}/auth/github/callback`;
+            }
         }
     } catch (err) {
         console.error(err);
         githubStatusText.textContent = 'Status unavailable.';
+        if (githubConfigText) githubConfigText.textContent = '';
     }
 }
 
@@ -1071,7 +1305,7 @@ async function autoLoadCoderWorkspaces(selectEl, container) {
     }
 }
 
-function renderCoderWorkspaces(container, workspaces) {
+function renderCoderWorkspaces(container, workspaces, accountId) {
     if (!container) return;
     container.innerHTML = '';
     if (!workspaces.length) {
@@ -1097,6 +1331,38 @@ function renderCoderWorkspaces(container, workspaces) {
 
         const actions = document.createElement('div');
         actions.className = 'integration-actions';
+
+        const canStop = ['running', 'started', 'healthy'].includes(statusValue);
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = canStop ? 'btn-danger btn-compact' : 'btn-primary btn-compact';
+        toggleBtn.textContent = canStop ? 'Stop' : 'Start';
+        toggleBtn.addEventListener('click', async () => {
+            if (!accountId || !ws.id) return;
+            toggleBtn.disabled = true;
+            const endpoint = canStop ? 'stop' : 'start';
+            try {
+                const params = new URLSearchParams({
+                    account_id: accountId,
+                    workspace_id: ws.id
+                });
+                const res = await fetch(`${API_URL}/integrations/coder/workspaces/${endpoint}?${params.toString()}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.detail || `Failed to ${endpoint} workspace`);
+                    toggleBtn.disabled = false;
+                } else {
+                    await loadCoderWorkspaces(accountId, container);
+                }
+            } catch (err) {
+                console.error(err);
+                toggleBtn.disabled = false;
+            }
+        });
+        actions.appendChild(toggleBtn);
 
         const copyBtn = document.createElement('button');
         copyBtn.type = 'button';
@@ -1132,7 +1398,7 @@ async function loadCoderWorkspaces(accountId, container) {
         });
         const data = await res.json();
         if (res.ok && Array.isArray(data.workspaces)) {
-            renderCoderWorkspaces(container, data.workspaces);
+            renderCoderWorkspaces(container, data.workspaces, accountId);
         } else {
             container.innerHTML = `<p class="subtitle">${data.detail || 'Failed to load workspaces'}</p>`;
         }
@@ -1265,6 +1531,101 @@ if (workspacesCoderSelect) {
     });
 }
 
+async function loadGithubCodespaces() {
+    if (!codespacesList) return;
+    codespacesList.innerHTML = '<p class="subtitle">Loading codespaces...</p>';
+    try {
+        const res = await fetch(`${API_URL}/integrations/github/codespaces`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.codespaces)) {
+            if (!data.codespaces.length) {
+                codespacesList.innerHTML = '<p class="subtitle">No codespaces found.</p>';
+                return;
+            }
+            codespacesList.innerHTML = '';
+            data.codespaces.forEach(cs => {
+                const item = document.createElement('div');
+                item.className = 'workspace-item';
+
+                const meta = document.createElement('div');
+                meta.className = 'workspace-meta';
+                const name = document.createElement('strong');
+                name.textContent = cs.display_name || cs.name || 'Codespace';
+                meta.appendChild(name);
+
+                const repo = document.createElement('div');
+                repo.className = 'subtitle';
+                repo.textContent = cs.repository || '';
+                meta.appendChild(repo);
+
+                const status = document.createElement('span');
+                const statusValue = (cs.state || 'unknown').toLowerCase();
+                status.className = `status-pill status-${statusValue}`;
+                status.textContent = cs.state || 'Unknown';
+                meta.appendChild(status);
+
+                const actions = document.createElement('div');
+                actions.className = 'integration-actions';
+                const canStop = ['available', 'running'].includes(statusValue);
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = canStop ? 'btn-danger btn-compact' : 'btn-primary btn-compact';
+                toggleBtn.textContent = canStop ? 'Stop' : 'Start';
+                toggleBtn.addEventListener('click', async () => {
+                    if (!cs.name) return;
+                    toggleBtn.disabled = true;
+                    const endpoint = canStop ? 'stop' : 'start';
+                    try {
+                        const res = await fetch(`${API_URL}/integrations/github/codespaces/${encodeURIComponent(cs.name)}/${endpoint}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${state.token}` }
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            alert(data.detail || `Failed to ${endpoint} Codespace`);
+                            toggleBtn.disabled = false;
+                        } else {
+                            await loadGithubCodespaces();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        toggleBtn.disabled = false;
+                    }
+                });
+                actions.appendChild(toggleBtn);
+
+                if (cs.url) {
+                    const openBtn = document.createElement('button');
+                    openBtn.type = 'button';
+                    openBtn.className = 'btn-secondary btn-compact';
+                    openBtn.textContent = 'Open';
+                    openBtn.addEventListener('click', () => {
+                        window.open(cs.url, '_blank');
+                    });
+                    actions.appendChild(openBtn);
+                }
+
+                item.appendChild(meta);
+                item.appendChild(actions);
+                codespacesList.appendChild(item);
+            });
+        } else {
+            codespacesList.innerHTML = `<p class="subtitle">${data.detail || 'Failed to load codespaces'}</p>`;
+        }
+    } catch (err) {
+        console.error(err);
+        codespacesList.innerHTML = '<p class="subtitle">Error loading codespaces</p>';
+    }
+}
+
+if (codespacesLoadBtn) {
+    codespacesLoadBtn.addEventListener('click', async () => {
+        await loadGithubCodespaces();
+    });
+}
+
 if (githubConnectBtn) {
     githubConnectBtn.addEventListener('click', async () => {
         if (githubConnectBtn.disabled) return;
@@ -1281,6 +1642,29 @@ if (githubConnectBtn) {
         } catch (err) {
             console.error(err);
             alert('Server error starting GitHub OAuth');
+        }
+    });
+}
+
+if (githubDisconnectBtn) {
+    githubDisconnectBtn.addEventListener('click', async () => {
+        if (githubDisconnectBtn.disabled) return;
+        if (!confirm('Disconnect GitHub for this user?')) return;
+        try {
+            const res = await fetch(`${API_URL}/integrations/github/disconnect`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${state.token}` }
+            });
+            if (res.ok) {
+                if (githubReposContainer) githubReposContainer.innerHTML = '';
+                await loadGithubStatus();
+            } else {
+                const data = await res.json();
+                alert(data.detail || 'Failed to disconnect GitHub.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Server error disconnecting GitHub.');
         }
     });
 }

@@ -493,6 +493,13 @@ button.btn-secondary:active {
     color: var(--text-dim);
 }
 
+.workspace-alert-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 .inline-note {
     color: var(--text-dim);
     font-size: 0.85rem;
@@ -551,6 +558,7 @@ button.btn-secondary:active {
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     gap: 24px;
     margin-top: 24px;
+    max-height: calc(90vh - 150px);
 }
 
 .project-viewer-pane {
@@ -559,6 +567,21 @@ button.btn-secondary:active {
     border-radius: 18px;
     padding: 18px;
     min-height: 320px;
+    overflow: auto;
+}
+
+.project-viewer-modal-card {
+    max-height: 90vh;
+}
+
+.project-settings-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 12px;
+    margin-top: 12px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.75) 40%, rgba(15, 23, 42, 0.95) 100%);
+    display: flex;
+    justify-content: flex-end;
 }
 
 .project-viewer-placeholder {
@@ -581,6 +604,33 @@ button.btn-secondary:active {
     border-radius: 16px;
     border: 1px solid var(--glass-border);
     margin: 12px 0 16px;
+}
+
+.project-github-panel {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.project-github-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+}
+
+.project-github-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.project-github-item {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(15, 23, 42, 0.35);
+    font-size: 0.85rem;
 }
 
 .folder-list {

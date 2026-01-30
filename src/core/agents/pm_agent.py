@@ -59,12 +59,17 @@ class FulcrumPMAgent:
                     "name": p.name,
                     "description": p.description,
                     "remote_url": p.remote_url,
+                    "github_repo": p.github_repo,
                     "workspace_id": p.workspace_id,
                     "workspace_name": p.workspace_name,
                     "workspace_path": p.workspace_path,
+                    "workspace_ref": p.workspace_ref,
                     "production_url": p.production_url,
                     "testing_url": p.testing_url,
-                    "thumbnail_url": p.thumbnail_url
+                    "thumbnail_url": p.thumbnail_url,
+                    "codespace_id": p.codespace_id,
+                    "codespace_name": p.codespace_name,
+                    "codespace_url": p.codespace_url
                 }
                 for p in projects
             ]

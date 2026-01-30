@@ -68,7 +68,7 @@ async def github_login(
     params = {
         "client_id": client_id,
         "redirect_uri": _github_redirect_uri(),
-        "scope": "read:user repo",
+        "scope": "read:user repo codespace",
         "state": state,
     }
     query = httpx.QueryParams(params)
@@ -92,6 +92,24 @@ async def github_status(
     if not account:
         return {"connected": False, "configured": configured}
     return {"connected": True, "username": account.name, "configured": configured}
+
+
+@router.delete("/github/disconnect")
+async def github_disconnect(
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AccountDB).where(
+            (AccountDB.user_id == current_user.id) & (AccountDB.provider == "github")
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        return {"ok": True}
+    await db.delete(account)
+    await db.commit()
+    return {"ok": True}
 
 
 @router.get("/github/repos")
@@ -121,6 +139,106 @@ async def github_repos(
         for r in data
     ]
     return {"repos": repos}
+
+
+@router.get("/github/codespaces")
+async def github_codespaces(
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AccountDB).where(
+            (AccountDB.user_id == current_user.id) & (AccountDB.provider == "github")
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account or not account.access_token:
+        raise HTTPException(status_code=400, detail="GitHub not connected.")
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.get(
+            "https://api.github.com/user/codespaces?per_page=100",
+            headers={"Authorization": f"Bearer {account.access_token}"},
+        )
+        if res.status_code != 200:
+            detail = None
+            try:
+                detail = res.json()
+            except Exception:
+                detail = res.text
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to fetch GitHub codespaces. Status: {res.status_code}. {detail}",
+            )
+        data = res.json()
+    codespaces = data.get("codespaces") if isinstance(data, dict) else []
+    items = []
+    for cs in codespaces:
+        if not isinstance(cs, dict):
+            continue
+        items.append(
+            {
+                "id": cs.get("id"),
+                "name": cs.get("name"),
+                "state": cs.get("state"),
+                "repository": (cs.get("repository") or {}).get("full_name"),
+                "display_name": cs.get("display_name"),
+                "url": cs.get("web_url") or cs.get("url"),
+            }
+        )
+    return {"codespaces": items}
+
+
+@router.post("/github/codespaces/{codespace_name}/start")
+async def github_codespace_start(
+    codespace_name: str,
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AccountDB).where(
+            (AccountDB.user_id == current_user.id) & (AccountDB.provider == "github")
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account or not account.access_token:
+        raise HTTPException(status_code=400, detail="GitHub not connected.")
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.post(
+            f"https://api.github.com/user/codespaces/{codespace_name}/start",
+            headers={"Authorization": f"Bearer {account.access_token}"},
+        )
+        if res.status_code not in (200, 202):
+            raise HTTPException(status_code=502, detail="Failed to start Codespace.")
+        data = res.json()
+    return {"ok": True, "codespace": data}
+
+
+@router.post("/github/codespaces/{codespace_name}/stop")
+async def github_codespace_stop(
+    codespace_name: str,
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AccountDB).where(
+            (AccountDB.user_id == current_user.id) & (AccountDB.provider == "github")
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account or not account.access_token:
+        raise HTTPException(status_code=400, detail="GitHub not connected.")
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.post(
+            f"https://api.github.com/user/codespaces/{codespace_name}/stop",
+            headers={"Authorization": f"Bearer {account.access_token}"},
+        )
+        if res.status_code not in (200, 202):
+            raise HTTPException(status_code=502, detail="Failed to stop Codespace.")
+        data = res.json()
+    return {"ok": True, "codespace": data}
 
 
 @router.post("/coder/oauth/login")
@@ -622,3 +740,81 @@ async def coder_workspace_files(
         folders.append({"name": name, "path": entry_path})
 
     return {"path": normalized_path, "folders": folders}
+
+
+@router.post("/coder/workspaces/start")
+async def coder_workspace_start(
+    account_id: str,
+    workspace_id: str,
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AccountDB).where(AccountDB.id == account_id)
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Coder account not found.")
+    if account.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to access this account.")
+    if not account.access_token or not account.api_endpoint:
+        raise HTTPException(status_code=400, detail="Coder account is missing credentials.")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            res = await client.post(
+                f"{account.api_endpoint}/api/v2/workspaces/{workspace_id}/builds",
+                json={"transition": "start", "reason": "dashboard"},
+                headers=_coder_auth_headers(account),
+            )
+            if res.status_code not in (200, 201, 202):
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to start workspace. Status: {res.status_code}",
+                )
+            data = res.json()
+    except HTTPException:
+        raise
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Error connecting to Coder: {str(e)}")
+
+    return {"ok": True, "build": data}
+
+
+@router.post("/coder/workspaces/stop")
+async def coder_workspace_stop(
+    account_id: str,
+    workspace_id: str,
+    current_user: UserDB = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AccountDB).where(AccountDB.id == account_id)
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Coder account not found.")
+    if account.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to access this account.")
+    if not account.access_token or not account.api_endpoint:
+        raise HTTPException(status_code=400, detail="Coder account is missing credentials.")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            res = await client.post(
+                f"{account.api_endpoint}/api/v2/workspaces/{workspace_id}/builds",
+                json={"transition": "stop", "reason": "dashboard"},
+                headers=_coder_auth_headers(account),
+            )
+            if res.status_code not in (200, 201, 202):
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to stop workspace. Status: {res.status_code}",
+                )
+            data = res.json()
+    except HTTPException:
+        raise
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Error connecting to Coder: {str(e)}")
+
+    return {"ok": True, "build": data}

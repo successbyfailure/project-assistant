@@ -11,16 +11,28 @@ Phase 4: AI & Advanced Workflows    → 2 weeks
 
 ## ✅ Current Status (2026-01-30)
 
-- LLM accounts now support enabled-model lists + default model per endpoint.
+- LLM accounts support enabled-model lists + default model per endpoint.
 - PM chat uses the selected account + model and enforces enabled models.
-- Endpoint normalization for Ollama (/v1) applied server-side.
-- Alembic scaffolding added with initial migration baseline.
+- Ollama endpoint normalization (/v1) handled server-side.
+- Alembic migrations added (initial + project/workspace fields).
+- Coder OAuth flow implemented (env-based base URL).
+- Coder workspaces auto-load in UI and show status.
+- Project settings include workspace, path, URLs, and thumbnail.
+- Workspace path selector uses Coder MCP (with agent status handling).
+- Integrations UI updated (delete connections, OAuth only for Coder).
+- Workspace start action added for disconnected agents.
+- Project stores workspace_ref to avoid recompute when browsing.
+- GitHub repo picker added to project settings, with OAuth config helper.
+- Codespaces fields added to projects for future persistence.
+- GitHub issues/PRs widget added in project viewer.
+- Workspace start/stop actions available in Workspaces list.
 
 ## ▶️ Next Steps
 
-- Add Alembic migrations and backfill existing DB schema changes.
-- Implement GitHub OAuth flow (Module 2.1.1) and repo discovery (2.1.2).
-- Implement Coder account sync + workspace discovery (Module 2.2).
+- Auto-link Codespaces to projects when repo matches (optional).
+- Add GitHub issue/PR links (clickable) in project viewer.
+- Add manual refresh buttons for Workspaces/Codespaces lists.
+- Add CI: build and publish Docker image on main.
 
 ---
 

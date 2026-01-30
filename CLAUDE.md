@@ -2,10 +2,10 @@
 
 ## 🎯 Project Overview
 
-**Project Assistant** is an MCP-based orchestration system designed to manage software projects within Coder workspaces. It acts as an intelligent layer between AI agents (like Android Assistant, Claude Code) and development environments, providing high-level project management, task tracking, and workflow automation.
+**Project Assistant (Fulcrum)** is an MCP-based orchestration system designed to manage software projects within Coder workspaces. It acts as an intelligent layer between AI agents (like Android Assistant, Claude Code) and development environments, providing high-level project management, task tracking, and workflow automation.
 
 ### Key Innovation
-Unlike traditional project management tools, Project Assistant is **AI-native**: it's designed to be consumed by AI agents via MCP (Model Context Protocol), enabling voice-driven development, autonomous task execution, and intelligent project insights.
+Unlike traditional project management tools, Project Assistant is **AI-native**: it's designed to be consumed by AI agents via MCP (Model Context Protocol), enabling voice-driven development, autonomous task execution, and intelligent project insights. The web UI complements this with integrations and project metadata management.
 
 ---
 
@@ -46,6 +46,7 @@ Unlike traditional project management tools, Project Assistant is **AI-native**:
 │  │  • GitMCPClient → mcp-server-git                 │  │
 │  │  • GitHubMCPClient → github-mcp-server           │  │
 │  │  • FileSystemMCPClient → mcp-server-filesystem   │  │
+│  │  • CoderMCPClient → Coder MCP HTTP endpoint      │  │
 │  └──────────────────────────────────────────────────┘  │
 └─────────────────────────┬───────────────────────────────┘
                           │ MCP STDIO (local)
@@ -59,7 +60,7 @@ Unlike traditional project management tools, Project Assistant is **AI-native**:
 └─────────┼──────────────────┼──────────────────┼─────────┘
           │                  │                  │
           ▼                  ▼                  ▼
-    /Projects/*         /Projects/*        GitHub API
+    /home/coder/Projects/* /home/coder/Projects/* GitHub API
     (git repos)         (filesystem)       (via gh CLI)
 ```
 
@@ -154,7 +155,7 @@ project-assistant/
 - **MCP SDK**: Model Context Protocol (client + server)
 - **Pydantic v2**: Data validation and settings
 - **SQLAlchemy**: ORM for task persistence
-- **aiosqlite**: Async SQLite driver
+- **PostgreSQL + asyncpg**: Primary database (Docker)
 
 ### Coder Integration
 - **mcp-server-git**: Git operations (pre-installed in Coder)
@@ -178,10 +179,19 @@ is_coder = os.getenv("CODER_WORKSPACE_NAME") is not None
 ```
 
 ### Expected Coder Environment
-- **Projects directory**: `/Projects` (contains git repositories)
+- **Projects directory**: `/home/coder/Projects` (contains git repositories)
 - **GitHub CLI**: `gh` authenticated with user's GitHub account
 - **Git config**: User's git credentials already configured
 - **MCP servers**: Native Coder MCP servers available
+
+### Web App Integrations (Current)
+- **Coder OAuth**: OAuth-only flow (no base URL input in UI).
+- **MCP file browsing**: Uses Coder MCP HTTP; requires agent to be connected.
+- **Workspace start**: UI can trigger a Coder workspace start when agent is disconnected.
+- **Project metadata**: Workspace ID/name/path, git URL, prod/test URLs, thumbnail.
+- **GitHub repos**: Repo picker fills Git URL and stores repo full name.
+- **GitHub widgets**: Project viewer shows open issues/PRs.
+- **Codespaces**: Project stores codespace id/name/url (manual for now).
 
 ### Initial Setup
 ```bash
@@ -191,9 +201,9 @@ is_coder = os.getenv("CODER_WORKSPACE_NAME") is not None
 # This will:
 # - Verify Coder environment
 # - Check gh CLI authentication
-# - List available projects in /Projects
+# - List available projects in /home/coder/Projects
 # - Install Python dependencies
-# - Initialize SQLite database
+# - Initialize Postgres database (Docker)
 # - Configure environment variables
 ```
 
@@ -204,7 +214,7 @@ is_coder = os.getenv("CODER_WORKSPACE_NAME") is not None
 ### Project Tools
 
 #### `project.list_available`
-Lists all git repositories in `/Projects`.
+Lists all git repositories in `/home/coder/Projects`.
 
 **Input:** None  
 **Output:**
@@ -212,7 +222,7 @@ Lists all git repositories in `/Projects`.
 {
   "projects": ["homehub", "ai-assistant", "website"],
   "total": 3,
-  "location": "/Projects"
+  "location": "/home/coder/Projects"
 }
 ```
 
@@ -231,7 +241,7 @@ Comprehensive project status aggregating Git, GitHub, and Tasks.
 ```json
 {
   "project": "homehub",
-  "path": "/Projects/homehub",
+  "path": "/home/coder/Projects/homehub",
   "git": {
     "branch": "feature/oauth2",
     "is_dirty": true,
@@ -403,7 +413,7 @@ class TaskStatus(str, Enum):
 
 class Task(BaseModel):
     id: str
-    project_name: str             # Links to /Projects/{name}
+    project_name: str             # Links to /home/coder/Projects/{name}
     type: TaskType
     title: str
     description: Optional[str]
@@ -465,7 +475,7 @@ echo '{"method": "tools/call", "params": {"name": "project_status", "arguments":
 ## 🔐 Security Considerations
 
 ### Path Validation
-- All file operations must stay within `/Projects`
+- All file operations must stay within `/home/coder/Projects`
 - Prevent directory traversal attacks
 
 ### GitHub Token
@@ -525,22 +535,20 @@ logger.info("Project status retrieved", extra={
 - `project.list_available` tool
 - `project.status` tool (Git + GitHub + Tasks)
 - `tasks.create/list/update` tools
-- Task persistence in SQLite
-- Coder environment detection
+- Task persistence in Postgres
 
 ❌ **Not in MVP:**
 - Research task execution
 - Multi-agent workflows
-- Web dashboard
 - Advanced AI suggestions
 
 ---
 
 ## 🚧 Known Limitations
 
-1. **Single workspace**: Only works in the Coder workspace where it's installed
-2. **GitHub dependency**: Requires `gh` CLI authentication
-3. **No distributed tasks**: Tasks stored locally in SQLite
+1. **Remote workspace control**: Requires Coder agent to be connected for MCP file browsing
+2. **GitHub dependency**: Requires `gh` CLI authentication for GitHub MCP
+3. **No distributed tasks**: Tasks stored locally in Postgres
 4. **Synchronous workflows**: No background job processing yet
 
 ---
@@ -563,22 +571,20 @@ logger.info("Project status retrieved", extra={
 **Solution:** Run `gh auth login` in the Coder workspace
 
 ### Issue: Projects directory not found
-**Solution:** Ensure `/Projects` exists and contains git repositories
+**Solution:** Ensure `/home/coder/Projects` exists and contains git repositories
 
 ### Issue: Permission denied writing to database
-**Solution:** Check `PROJECT_ASSISTANT_DB` path is writable
+**Solution:** Check Postgres credentials and Docker volume permissions
 
 ---
 
 ## 🎓 Next Steps for Development
 
 1. **Read IMPLEMENTATION_PLAN.md** for detailed module breakdown
-2. **Run coder-setup.sh** to verify environment
-3. **Implement Module 1**: Coder environment detection
-4. **Implement Module 2**: MCP clients (git, github)
-5. **Implement Module 3**: Basic MCP server with project.status
-6. **Test** with MCP Inspector
-7. **Iterate** based on feedback
+2. **Validate** workspace browsing in UI (agent connected)
+3. **Add** start-workspace action when agent is disconnected
+4. **Persist** workspace_ref per project to avoid recompute
+5. **Iterate** based on feedback
 
 ---
 
